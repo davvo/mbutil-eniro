@@ -9,7 +9,7 @@
 import logging, os, sys
 from optparse import OptionParser
 
-from mbutil import mbtiles_to_disk, disk_to_mbtiles, eniro_to_mbtiles
+from mbutil import mbtiles_to_disk, disk_to_mbtiles
 
 if __name__ == '__main__':
 

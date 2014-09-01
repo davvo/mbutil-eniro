@@ -153,8 +153,8 @@ def eniro_to_mbtiles(directory_path, mbtiles_file, cur, con):
     for zoomDir in getDirs(directory_path):
         z = int(zoomDir[12:])
         for img in listEniro(os.path.join(directory_path, zoomDir)):
-            name, ext = img.split('.', 1)
-            x, y = os.path.basename(name).split('_')
+            name, ext = os.path.basename(img).split('.', 1)
+            x, y = name.split('_')
             x = int(x)
             y = int(y)
             f = open(img, 'rb')
