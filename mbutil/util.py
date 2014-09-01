@@ -145,7 +145,7 @@ def listEniro(file):
     else:
         yield file
 
-def eniro_to_mbtiles(directory_path, mbtiles_file, cur, con):
+def eniro_to_mbtiles(directory_path, mbtiles_file, cur, con, image_format):
     count = 0
     start_time = time.time()
     msg = ""
@@ -154,22 +154,23 @@ def eniro_to_mbtiles(directory_path, mbtiles_file, cur, con):
         z = int(zoomDir[12:])
         for img in listEniro(os.path.join(directory_path, zoomDir)):
             name, ext = os.path.basename(img).split('.', 1)
-            x, y = name.split('_')
-            x = int(x)
-            y = int(y)
-            f = open(img, 'rb')
-            file_content = f.read()
-            f.close()
-            logger.debug(' Read tile from Zoom (z): %i\tCol (x): %i\tRow (y): %i' % (z, x, y))
-            cur.execute("""insert into tiles (zoom_level,
-                tile_column, tile_row, tile_data) values
-                (?, ?, ?, ?);""",
-                (z, x, y, sqlite3.Binary(file_content)))
-            count = count + 1
-            if (count % 100) == 0:
-                for c in msg: sys.stdout.write(chr(8))
-                msg = "%s tiles inserted (%d tiles/sec)" % (count, count / (time.time() - start_time))
-                sys.stdout.write(msg)
+            if (ext == image_format):
+                x, y = name.split('_')
+                x = int(x)
+                y = int(y)
+                f = open(img, 'rb')
+                file_content = f.read()
+                f.close()
+                logger.debug(' Read tile from Zoom (z): %i\tCol (x): %i\tRow (y): %i' % (z, x, y))
+                cur.execute("""insert into tiles (zoom_level,
+                    tile_column, tile_row, tile_data) values
+                    (?, ?, ?, ?);""",
+                    (z, x, y, sqlite3.Binary(file_content)))
+                count = count + 1
+                if (count % 100) == 0:
+                    for c in msg: sys.stdout.write(chr(8))
+                    msg = "%s tiles inserted (%d tiles/sec)" % (count, count / (time.time() - start_time))
+                    sys.stdout.write(msg)
 
         logger.debug('tiles (and grids) inserted.')
         optimize_database(con)
@@ -195,7 +196,7 @@ def disk_to_mbtiles(directory_path, mbtiles_file, **kwargs):
 
 
     if kwargs.get("scheme") == 'eniro':
-        return eniro_to_mbtiles(directory_path, mbtiles_file, cur, con)
+        return eniro_to_mbtiles(directory_path, mbtiles_file, cur, con, image_format)
 
     count = 0
     start_time = time.time()
