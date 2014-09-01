@@ -137,6 +137,43 @@ def getDirs(path):
     return [name for name in os.listdir(path)
         if os.path.isdir(os.path.join(path, name))]
 
+def listEniro(file):
+    if os.path.isdir(file):
+        for current_file in os.listdir(file):
+            for value in listEniro(os.path.join(file, current_file)):
+                yield value
+    else:
+        yield file
+
+def eniro_to_mbtiles(directory_path, mbtiles_file, cur, con):
+    count = 0
+    start_time = time.time()
+    msg = ""
+
+    for zoomDir in getDirs(directory_path):
+        z = int(zoomDir[12:])
+        for img in listEniro(os.path.join(directory_path, zoomDir)):
+            name, ext = img.split('.', 1)
+            x, y = os.path.basename(name).split('_')
+            x = int(x)
+            y = int(y)
+            f = open(img, 'rb')
+            file_content = f.read()
+            f.close()
+            logger.debug(' Read tile from Zoom (z): %i\tCol (x): %i\tRow (y): %i' % (z, x, y))
+            cur.execute("""insert into tiles (zoom_level,
+                tile_column, tile_row, tile_data) values
+                (?, ?, ?, ?);""",
+                (z, x, y, sqlite3.Binary(file_content)))
+            count = count + 1
+            if (count % 100) == 0:
+                for c in msg: sys.stdout.write(chr(8))
+                msg = "%s tiles inserted (%d tiles/sec)" % (count, count / (time.time() - start_time))
+                sys.stdout.write(msg)
+
+        logger.debug('tiles (and grids) inserted.')
+        optimize_database(con)
+
 def disk_to_mbtiles(directory_path, mbtiles_file, **kwargs):
     logger.info("Importing disk to MBTiles")
     logger.debug("%s --> %s" % (directory_path, mbtiles_file))
@@ -155,6 +192,10 @@ def disk_to_mbtiles(directory_path, mbtiles_file, **kwargs):
         logger.info('metadata from metadata.json restored')
     except IOError:
         logger.warning('metadata.json not found')
+
+
+    if kwargs.get("scheme") == 'eniro':
+        return eniro_to_mbtiles(directory_path, mbtiles_file, cur, con)
 
     count = 0
     start_time = time.time()
